@@ -1,0 +1,331 @@
+---
+title: "Objective 1"
+format: html
+editor: visual
+---
+
+```{r}
+# TIMER STARTS -------------------------------------------
+start_time <- Sys.time()  # Get the current time
+```
+
+# Data
+
+```{r}
+### Loading libraries ------------------------------------------------------------------------
+library(terra)
+library(here)
+library(dplyr)
+library(sf)
+library(rgdal)
+library(tmap)
+
+### Source in file to read in data ------------------------------------------------------------------------
+source("read_in_data.R")
+```
+
+# Chaco Area
+
+```{r}
+### Chaco Shape ---------------------------------------------------------------
+
+#Filter only the departments in the Chaco Region
+chaco_dpto <- filter(department, nom_dpto %in% c("ALTO PARAGUAY", "PDTE. HAYES", "BOQUERON"))
+
+# Calculate area of Chaco departments (hectares)
+# chaco_dpto <-dplyr::mutate(chaco_dpto, area = sf::st_area(chaco_dpto))|>
+#   mutate( area = as.numeric(area))|>
+#   mutate(area = area/10000)
+
+# Visual check 
+ # tm_shape(chaco_dpto)+
+ #   tm_borders()+
+ #   tm_text("nom_dpto", size = 1/2)
+
+### Create 1 polygon for Chaco ------------------------------------------------------------
+#Dissolve the Chaco Departament to get the interest area
+chaco_region <- st_union(chaco_dpto, by_feature = FALSE, is_coverage = TRUE)|> st_make_valid()
+
+#Convert sfc_POLYGON in to a SF
+chaco_region <- st_sf(chaco_region) # st_sf makes df 
+
+#Calculate area for all chaco (hectares)
+# chaco_region <-dplyr::mutate(chaco_region, area = sf::st_area(chaco_region))|>
+#   mutate(area = as.numeric(area))|>
+#   mutate(area = area/10000) # round(),2
+
+# Visual Check 
+# tm_shape(chaco_region)+
+#   tm_borders()+
+#   tm_text("area", size = 1)
+```
+
+# Check CRS
+
+```{r}
+### Check CRS  ------------------------------------------------------------------------
+st_crs(fc_2000) #'NA' so need to manually set
+# st_crs(fc_2000) <- st_crs(32721) #doesn't work so set manually
+# st_crs(fc_2000) <- "+proj=utm +zone=21 +south +ellps=WGS84 +datum=WGS84 +units=m +no_defs"
+# crs <- "+proj=utm +zone=21 +south +ellps=WGS84 +datum=WGS84 +units=m +no_defs"
+
+# Forest Cover 
+st_crs(fc_2000) <- "+proj=utm +zone=21 +south +ellps=WGS84 +datum=WGS84 +units=m +no_defs"
+st_crs(fc_2000) #CHECK 
+st_crs(fc_2005) <- "+proj=utm +zone=21 +south +ellps=WGS84 +datum=WGS84 +units=m +no_defs"
+st_crs(fc_2011) <- "+proj=utm +zone=21 +south +ellps=WGS84 +datum=WGS84 +units=m +no_defs"
+st_crs(fc_2013) <- "+proj=utm +zone=21 +south +ellps=WGS84 +datum=WGS84 +units=m +no_defs"
+st_crs(fc_2016) <- "+proj=utm +zone=21 +south +ellps=WGS84 +datum=WGS84 +units=m +no_defs"
+st_crs(fc_2017) <- "+proj=utm +zone=21 +south +ellps=WGS84 +datum=WGS84 +units=m +no_defs"
+st_crs(fc_2018) <- "+proj=utm +zone=21 +south +ellps=WGS84 +datum=WGS84 +units=m +no_defs"
+st_crs(fc_2020) <- "+proj=utm +zone=21 +south +ellps=WGS84 +datum=WGS84 +units=m +no_defs"
+# st_crs(fc_2017) #CHECK
+
+# Chaco Region
+st_crs(chaco_region) <- "+proj=utm +zone=21 +south +ellps=WGS84 +datum=WGS84 +units=m +no_defs"
+st_crs(chaco_region)
+# plot(chaco_region)
+```
+
+# SUBSET CHACO
+
+## FC
+
+```{r}
+# # FC SUBSET ---------------------
+# # Double check CRS 
+# st_crs(dist_sub) # GOOD 
+# st_crs(fc_2000) # GOOD 
+# # FC 
+# fc_2000_chaco_subset <- st_intersection(dist_sub, fc_2000 )
+```
+
+## NF
+
+```{r}
+# Function 
+#st_erase = function(x, y) st_difference(x, st_union(st_combine(y)))
+
+# NF SUBSET
+# nf_2000_chaco_subset <- st_erase(dist_sub, fc_2000_chaco_subset)
+```
+
+```{r}
+# Maps --------------------
+# #fc_2000
+#   tmap_mode("view")
+#   tm_shape(fc_2000_chaco_subset) +
+#   tm_fill(col = "darkgreen") +
+# #nf_2000 
+#   tm_shape(nf_2000_chaco_subset) +
+#   tm_fill(col = "red")
+```
+
+## FC
+
+```{r}
+# Verify
+# st_crs(dist_sub)
+# st_crs(fc_2005) 
+
+# FC
+# fc_2005_chaco_subset <- st_intersection(dist_sub, fc_2005)
+```
+
+## NF
+
+```{r}
+# Apply st_erase function we defined in 2000 NF
+# NF 
+#nf_2005_chaco_subset <- st_erase(dist_sub, fc_2005_chaco_subset) 
+```
+
+```{r}
+# MAPS ----------------------
+# #fc_2005 
+#   tmap_mode("view")
+#   tm_shape(fc_2005_chaco_subset) +
+#   tm_fill(col = "dodgerblue") +
+# #nf_2005 
+#   tm_shape(nf_2005_chaco_subset) +
+#   tm_fill(col = "yellow")
+```
+
+## FL
+
+```{r}
+#st_erase = function(x, y) st_difference(x, st_union(st_combine(y)))
+#df <- st_erase(nf_2005_chaco_subset, nf_2000_chaco_subset)
+```
+
+## MAPS
+
+```{r}
+# # fc_2000 
+#   tmap_mode("view") +
+#   tm_shape(fc_2000_chaco_subset) +
+#   tm_fill(col = "darkgreen") +
+# # nf_2000 
+#   tm_shape(nf_2000_chaco_subset) +
+#   tm_fill(col = "red") +
+# # fc_2005
+#   tm_shape(fc_2005_chaco_subset) +
+#   tm_fill(col = "dodgerblue") +
+# # nf_2005 
+#   tm_shape(nf_2005_chaco_subset) +
+#   tm_fill(col = "yellow") +
+# # 2000 - 2005 deforestation
+#   tm_shape(df) + 
+#   tm_fill(col = "blue")
+
+# Save 2000 - 2005 deforestation file 
+#write_sf(df, "00_05_lossforest.shp") #st_write!
+```
+
+# 2000 - 2005 FL
+
+```{r}
+# FC 2000 ---------
+fc_2000_chaco <- st_intersection(chaco_region, fc_2000 )
+
+#NF 2000
+st_erase = function(x, y) st_difference(x, st_union(st_combine(y)))
+nf_2000_chaco <- st_erase(chaco_region, fc_2000_chaco)
+
+# FC 2005
+fc_2005_chaco <- st_intersection(chaco_region, fc_2005)
+
+# NF 2005 
+nf_2005_chaco <- st_erase(chaco_region, fc_2005_chaco) 
+
+# Forest Loss (FL) 2000 - 2005
+fl_2000_2005 <-st_erase(nf_2005_chaco, nf_2000_chaco)
+```
+
+```{r}
+# SAVE FL FILE ----------------
+
+# FL directory **** REMINDER ONLY RUN ONCE IT WILL CREATE DUPLICATE FILES AND FOLDERS *****
+fl_filepath <- path.expand("~/../../capstone/pyforest/data/forest_loss") # data dir
+dir.create(file.path(fl_filepath, "00_05_forest_loss")) # mkdir
+filepath <- file.path(fl_filepath, "00_05_forest_loss", "00_05_forest_loss.shp") # file dir
+
+
+fl_2000_2005_filtered <- fl_2000_2005 %>%
+  st_collection_extract() %>%
+  st_cast("MULTIPOLYGON")
+
+# SAVE FILTERED OBJ 
+st_write(fl_2000_2005_filtered, filepath)
+
+# NOW LET'S VERIFY THE SHP FILE SAVED PROPERLY 
+fl_00_05_shp <- st_read(filepath) # CRS is unknown
+st_crs(fl_00_05_shp) <- "+proj=utm +zone=21 +south +ellps=WGS84 +datum=WGS84 +units=m +no_defs" # set CRS
+
+
+```
+
+```{r}
+fl_2000_2005_filtered <- fl_2000_2005 %>%
+  st_collection_extract() %>%
+  st_cast("MULTIPOLYGON")
+
+
+# NOW LET'S SEE CAN I SAVE
+st_write(fl_2000_2005_filtered, filepath)
+
+# NOW LET'S VERFIY THE SHP FILE SAVED PROPERLY 
+fl_00_05_shp <- st_read(filepath) # CRS is unknown
+st_crs(fl_00_05_shp) <- "+proj=utm +zone=21 +south +ellps=WGS84 +datum=WGS84 +units=m +no_defs" # set CRS
+m <- tm_shape(fl_2000_2005_filtered) + tm_fill(col = "darkgreen")
+m 
+```
+
+```{r}
+# COMPARE TO OBJECT WE MADE
+st_sf(fl_00_05_shp)
+mshp <- tm_shape(fl_00_05_shp) + tm_fill(col = "darkgreen")
+mshp # LOOKS GOOD 
+```
+
+```{r}
+# Visual check that forest loss variable looks right (can layer in view mode but very slow)
+# We want plygn of the black areas 
+# Overlay maps as layers
+tmap_mode("plot")
+# view fc for 2000 (black) and 2005 (blue) 
+m1 + m3
+```
+
+# 2005 - 2011 FL
+
+```{r}
+# FC 2005 fc_2005_chaco 
+# NF 2005 nf_2011_chaco 
+
+# FC 2011
+fc_2011_chaco <- st_intersection(chaco_region, fc_2011)
+
+# NF 2011 
+nf_2011_chaco <- st_erase(chaco_region, fc_2011_chaco) 
+
+# Forest Loss (FL) 2005 - 2011
+fl_2005_2011 <- st_erase(nf_2005_chaco, nf_2000_chaco)
+
+# SAVE FL FILE
+fl_2005_2011_filtered <- fl_2000_2005 %>%
+  st_collection_extract() %>%
+  st_cast("MULTIPOLYGON")
+
+# FL directory **** REMINDER ONLY RUN ONCE IT WILL CREATE DUPLICATE FILES AND FOLDERS *****
+#fl_filepath <- path.expand("~/../../capstone/pyforest/data/forest_loss")
+dir.create(file.path(fl_filepath, "05_11_forest_loss")) # mkdir
+filepath_2 <- file.path(fl_filepath, "05_11_forest_loss", "05_11_forest_loss.shp") # file dir
+st_write(fl_2005_2011_filtered, filepath_2) # writes file
+```
+
+# 2011 - 2013 FL
+
+```{r}
+# FC 2011 fc_2011_chaco 
+# NF 2011 nf_2011_chaco 
+
+# FC 2013
+fc_2013_chaco <- st_intersection(chaco_region, fc_2013)
+
+# NF 2013 
+nf_2013_chaco <- st_erase(chaco_region, fc_2013_chaco) 
+
+# Forest Loss (FL) 2011 - 2013
+fl_2011_2013 <- st_erase(nf_2013_chaco, nf_2011_chaco)
+
+# SAVE FL FILE
+fl_2011_2013_filtered <- fl_2000_2005 %>%
+  st_collection_extract() %>%
+  st_cast("MULTIPOLYGON")
+
+# FL directory **** REMINDER ONLY RUN ONCE IT WILL CREATE DUPLICATE FILES AND FOLDERS *****
+# fl_filepath <- path.expand("~/../../capstone/pyforest/data/forest_loss")
+dir.create(file.path(fl_filepath, "11_13_forest_loss")) # mkdir
+filepath_3 <- file.path(fl_filepath, "11_13_forest_loss", "11_13_forest_loss.shp") # file dir
+write_sf(fl_2011_2013_filtered, filepath_3) # creates file
+```
+
+## NEED TO COMP.
+
+# 2013 - 2016 FL
+
+# 2016 - 2017 FL
+
+# 2017 - 2018 FL
+
+# 2018 - 2020 FL
+
+```{r}
+# TIMER ENDS -------------------------------------------
+end_time <- Sys.time()  # Get the time again
+
+# Calculate the difference between the start and end times
+total_time <- end_time - start_time
+total_time
+```
