@@ -1,4 +1,4 @@
-## ----input data-----------------------------------------------------------------------
+## ----input data----------------------------------------------------------------
 select_property <- function(property_cat) {
   #property_cat <- as.character(property_cat)
   #property_cat <- paste0('0', property_cat)
@@ -19,7 +19,7 @@ select_property <- function(property_cat) {
 #if(class(p)[1] != "sf") p <- sf::st_as_sf(p)
 
 
-## -------------------------------------------------------------------------------------
+## ------------------------------------------------------------------------------
 # property_dimensions <- function(paddock_area = 999000,
 #                                  hedgerow_width = 50,
 #                                  width_paddock = 1,
@@ -108,7 +108,7 @@ select_property <- function(property_cat) {
 
 
 
-## -------------------------------------------------------------------------------------
+## ------------------------------------------------------------------------------
 
 # 
 #  property_dimensions <- function(paddock_area = 999000,
@@ -184,7 +184,7 @@ select_property <- function(property_cat) {
 
 
 
-## -------------------------------------------------------------------------------------
+## ------------------------------------------------------------------------------
 # 1222580.005 width_paddock = 3,height_paddock = 1
 #1222999.9
 
@@ -219,7 +219,7 @@ property_dimensions <- function(desired_area = 999000 ,
 
 
 
-## -------------------------------------------------------------------------------------
+## ------------------------------------------------------------------------------
 grid_rotate <-
   function(boundary_property = property_boundary,
            x_y = pad_hedg_dim) {
@@ -279,7 +279,7 @@ grid_rotate <-
 
 
 
-## -------------------------------------------------------------------------------------
+## ------------------------------------------------------------------------------
 
 riparian_cut <- function(rip_corr = riparian_corridor, prop_gr = property_grid) {
   # Using riparian corridor cut the property fragments
@@ -293,7 +293,8 @@ riparian_cut <- function(rip_corr = riparian_corridor, prop_gr = property_grid) 
 }
 
 
-## -------------------------------------------------------------------------------------
+## ------------------------------------------------------------------------------
+
 reserve <- function(grid = property_fragment) {
   grid_boundary_sf <- st_as_sf(grid)
   
@@ -301,24 +302,66 @@ reserve <- function(grid = property_fragment) {
     mutate(cell_area = st_area(grid_boundary_sf))
   
   n <- 1
+  flag_exceeds <- FALSE
   repeat {
     forest <-  cell_areas %>%
       arrange(cell_area) %>%
       head(n)
+    print(forest)
     area_check <-
       sum((st_area(forest) / sum(st_area(cell_areas))) * 100 )
-    
+    print(area_check)
     if (area_check >= set_units(25,1) & area_check <= set_units(28,1)) {
       break
     }
+    
+    # Stop the loop if the area check is over 28 percent
+    if (area_check > set_units(28,1))  {
+      flag_exceeds <- TRUE
+      break
+    }
+    
     n <- n + 1
   }
-  forest <- st_union(forest)
+  
+  # If the loop stopped due to being over 28 percent then use the current n that makes area check over 28 percent
+  if (flag_exceeds== TRUE) {
+    forest <-  cell_areas %>%
+      arrange(desc(cell_area)) %>%
+      head(n-1)
+    forest <- st_union(forest)
+  } else {
+    forest <- st_union(forest)
+  }
+  
   return(forest)
 }
 
+# reserve <- function(grid = property_fragment) {
+#   grid_boundary_sf <- st_as_sf(grid)
+#   
+#   cell_areas <- grid_boundary_sf |>
+#     mutate(cell_area = st_area(grid_boundary_sf))
+#   
+#   n <- 1
+#   repeat {
+#     forest <-  cell_areas %>%
+#       arrange(cell_area) %>%
+#       head(n)
+#     area_check <-
+#       sum((st_area(forest) / sum(st_area(cell_areas))) * 100 )
+#     
+#     if (area_check >= set_units(25,1) & area_check <= set_units(28,1)) {
+#       break
+#     }
+#     n <- n + 1
+#   }
+#   forest <- st_union(forest)
+#   return(forest)
+# }
 
-## -------------------------------------------------------------------------------------
+
+## ------------------------------------------------------------------------------
 no_reserve_area <- function(grid_property = property_fragment,
                             fr_union = forest_reserve){
   #remaining property without forest reserve
@@ -330,7 +373,7 @@ no_reserve_area <- function(grid_property = property_fragment,
 }
 
 
-## -------------------------------------------------------------------------------------
+## ------------------------------------------------------------------------------
 riparian_buffer <-
   function(boundary_property = property_boundary,
            hydrology = hydro,
@@ -353,7 +396,7 @@ riparian_buffer <-
   }
 
 
-## -------------------------------------------------------------------------------------
+## ------------------------------------------------------------------------------
 make_hedges <- function(fragment = property_remaining) {
   # Make remaining property without forest into a a solid polygon and regrid. Regridding creates individual cells with geometry that can be buffered for hedgerows
   #fragment_valid <- st_union(fragment) |> st_make_valid() |> st_cast(to = 'POLYGON')
@@ -368,7 +411,7 @@ make_hedges <- function(fragment = property_remaining) {
 }  
 
 
-## -------------------------------------------------------------------------------------
+## ------------------------------------------------------------------------------
 
 make_paddocks <- function(frag = property_remaining, rows = hedgerows) {
     # pad will give the combined paddocks as one polygon to so st_area only returns one value
@@ -384,11 +427,11 @@ make_paddocks <- function(frag = property_remaining, rows = hedgerows) {
   }
 
 
-## -------------------------------------------------------------------------------------
+## ------------------------------------------------------------------------------
 st_erase = function(x, y) st_difference(x, st_union(st_combine(y)))
 
 
-## -------------------------------------------------------------------------------------
+## ------------------------------------------------------------------------------
 # if(is.null(riparian_corridor) ) {
 #     final_paddock <- paddocks
 #     final_hedgrow <- hedgerows
@@ -432,7 +475,7 @@ st_erase = function(x, y) st_difference(x, st_union(st_combine(y)))
 # )
 
 
-## -------------------------------------------------------------------------------------
+## ------------------------------------------------------------------------------
 # 
 # tm_shape(property_boundary) +
 #   tm_sf()

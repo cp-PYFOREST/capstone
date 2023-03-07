@@ -8,6 +8,7 @@ library(here)
 library(units)
 library(knitr)
 library(flextable)
+library(tictoc)
 ```
 
 # Source Data
@@ -16,6 +17,8 @@ library(flextable)
 #| include: false
 
 source(knitr::purl(here("R", 'undeveloped_region_simulation', "make_undeveloped_region.qmd")))
+
+hydro <- st_read(here('/capstone/pyforest/data/roads_hydrology/ly_hid2.shp'))
 ```
 
 # Source Functions
@@ -23,21 +26,25 @@ source(knitr::purl(here("R", 'undeveloped_region_simulation', "make_undeveloped_
 ```{r}
 #| include: false
 source(knitr::purl(here("R", 'src', "law_simulator.qmd")))
+
+limit_lu <- average_properties |> 
+  filter(cat ==56)
 ```
 
 # Collect Stats
 
 ```{r}
-system.time({
+
   # create a vector of unique combinations of width_paddock and height_paddock
-paddock_dims <- expand_grid(width_paddock = 1:4, height_paddock = 1:4)
+paddock_dims <- expand_grid(width_paddock = 1:4, height_paddock = 1:4) %>%
+  subset(width_paddock != height_paddock | width_paddock == 1)
 
 # create an empty data frame to store the results
 results_df <- data.frame()
-
+tic()
 #  loop through each property ID
 for (i in seq_along(limit_lu$cat)) {
-
+tic()
  # loop through each row of the paddock_dims data frame and perform the analysis
   for (j in seq_along(paddock_dims$width_paddock)){
     
@@ -45,7 +52,7 @@ for (i in seq_along(limit_lu$cat)) {
     h= paddock_dims$height_paddock[j]
 
     property_id <- as.integer(limit_lu$cat[i])
-    print(paste('current iteration:', i,j, 'ratio',w,'/',h))
+    print(paste('current iteration:', i,j, ',ratio',w,'/',h,',cat:',limit_lu$cat[i]))
   # Select Property
   property_boundary <- select_property(property_id)
   
@@ -70,12 +77,13 @@ for (i in seq_along(limit_lu$cat)) {
   
   # Create Grid , Rotate, Cut With Property
   property_grid <- grid_rotate()
-  
+  plot(property_grid)
   # Cut Grid w/ River
   property_fragment <- riparian_cut()
-
+  plot(property_fragment)
   # Create Forest Reserve ≥ 25% & \< 28%
   forest_reserve <- reserve()
+  plot(forest_reserve, col = 'green')
   
   # Property w/o reserve area
   property_remaining <- no_reserve_area()
@@ -267,12 +275,23 @@ for (i in seq_along(limit_lu$cat)) {
     }
   results_df <- bind_rows(results_df, statistics)
   }
+  toc()
 }
-
 # save the final dataframe
 #saveRDS(results_df, "results.rds")
-})
+toc()
 ```
+```{r}
+tm_shape(final_hedgerow) +
+  tm_sf(col = 'forestgreen') +
+  tm_shape(forest_reserve) +
+  tm_sf('green')+
+  tm_shape(paddocks)+
+  tm_sf(col = 'beige')
+
+
+```
+
 
 ```{r}
 

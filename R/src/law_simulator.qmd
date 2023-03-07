@@ -310,6 +310,7 @@ riparian_cut <- function(rip_corr = riparian_corridor, prop_gr = property_grid) 
 # Forest Reserve
 
 ```{r}
+
 reserve <- function(grid = property_fragment) {
   grid_boundary_sf <- st_as_sf(grid)
   
@@ -317,21 +318,63 @@ reserve <- function(grid = property_fragment) {
     mutate(cell_area = st_area(grid_boundary_sf))
   
   n <- 1
+  flag_exceeds <- FALSE
   repeat {
     forest <-  cell_areas %>%
       arrange(cell_area) %>%
       head(n)
+    print(forest)
     area_check <-
       sum((st_area(forest) / sum(st_area(cell_areas))) * 100 )
-    
+    print(area_check)
     if (area_check >= set_units(25,1) & area_check <= set_units(28,1)) {
       break
     }
+    
+    # Stop the loop if the area check is over 28 percent
+    if (area_check > set_units(28,1))  {
+      flag_exceeds <- TRUE
+      break
+    }
+    
     n <- n + 1
   }
-  forest <- st_union(forest)
+  
+  # If the loop stopped due to being over 28 percent then use the current n that makes area check over 28 percent
+  if (flag_exceeds== TRUE) {
+    forest <-  cell_areas %>%
+      arrange(desc(cell_area)) %>%
+      head(n-1)
+    forest <- st_union(forest)
+  } else {
+    forest <- st_union(forest)
+  }
+  
   return(forest)
 }
+
+# reserve <- function(grid = property_fragment) {
+#   grid_boundary_sf <- st_as_sf(grid)
+#   
+#   cell_areas <- grid_boundary_sf |>
+#     mutate(cell_area = st_area(grid_boundary_sf))
+#   
+#   n <- 1
+#   repeat {
+#     forest <-  cell_areas %>%
+#       arrange(cell_area) %>%
+#       head(n)
+#     area_check <-
+#       sum((st_area(forest) / sum(st_area(cell_areas))) * 100 )
+#     
+#     if (area_check >= set_units(25,1) & area_check <= set_units(28,1)) {
+#       break
+#     }
+#     n <- n + 1
+#   }
+#   forest <- st_union(forest)
+#   return(forest)
+# }
 ```
 
 # Remaining Area w/o Forest Reserve
